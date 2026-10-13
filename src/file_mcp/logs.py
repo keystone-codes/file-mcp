@@ -8,6 +8,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import unquote
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -48,11 +49,38 @@ def configure_logging(level: str) -> None:
 
 
 def redact_path(path: str) -> str:
-    """Hide link tokens. ``/u/<token>`` and ``/d/<token>`` become ``/u/***`` and ``/d/***``."""
+    """Hide link tokens, including dot-segment and percent-encoded forms.
+
+    ``/u/<token>`` and ``/d/<token>`` become ``/u/***`` and ``/d/***``. The same
+    replacement applies after collapsing ``.``, ``..``, and repeated slashes, so
+    ``/./u/…``, ``//u/…``, and ``/x/../u/…`` do not keep the token.
+    """
+    normalized = _normalize_path(path)
     for prefix in ("/u", "/d"):
-        if path == prefix or path.startswith(prefix + "/"):
+        if normalized == prefix or normalized.startswith(prefix + "/"):
             return f"{prefix}/***"
     return path
+
+
+def _normalize_path(path: str) -> str:
+    decoded = path
+    for _ in range(3):
+        nxt = unquote(decoded)
+        if nxt == decoded:
+            break
+        decoded = nxt
+    if not decoded.startswith("/"):
+        decoded = "/" + decoded
+    parts: list[str] = []
+    for part in decoded.split("/"):
+        if part in ("", "."):
+            continue
+        if part == "..":
+            if parts:
+                parts.pop()
+            continue
+        parts.append(part)
+    return "/" + "/".join(parts)
 
 
 class RequestLogMiddleware:
