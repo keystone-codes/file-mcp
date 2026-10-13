@@ -48,3 +48,20 @@ jobs:
 
       - name: Integration tests
         run: uv run pytest -q -m integration
+
+  package-lint:
+    name: Package lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: "3.12"
+
+      # keystonectl is not on PyPI yet. Pin the release-branch commit.
+      - name: Lint keystone-service.yaml
+        run: >-
+          uvx --from
+          "git+https://github.com/keystone-codes/keystonectl@95052b21173a8af7aaa555eecaf46d9e378b438d"
+          keystonectl lint keystone-service.yaml

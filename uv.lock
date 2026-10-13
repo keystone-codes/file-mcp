@@ -632,7 +632,7 @@ server = [
 
 [[package]]
 name = "file-mcp"
-version = "0.1.0"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "boto3" },
@@ -645,6 +645,7 @@ dev = [
     { name = "moto", extra = ["s3"] },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "pyyaml" },
     { name = "ruff" },
 ]
 
@@ -660,6 +661,7 @@ dev = [
     { name = "moto", extras = ["s3"], specifier = ">=5" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-asyncio", specifier = ">=0.23" },
+    { name = "pyyaml", specifier = ">=6" },
     { name = "ruff", specifier = ">=0.9" },
 ]
 
