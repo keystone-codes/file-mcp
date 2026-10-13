@@ -48,30 +48,52 @@ def configure_logging(level: str) -> None:
         logging.getLogger(name).setLevel(logging.WARNING)
 
 
-def redact_path(path: str) -> str:
-    """Hide link tokens, including dot-segment and percent-encoded forms.
+_LINK_SEGMENTS = frozenset({"u", "d"})
 
-    ``/u/<token>`` and ``/d/<token>`` become ``/u/***`` and ``/d/***``. The same
-    replacement applies after collapsing ``.``, ``..``, and repeated slashes, so
-    ``/./u/…``, ``//u/…``, and ``/x/../u/…`` do not keep the token.
+
+def redact_path(path: str) -> str:
+    """Hide link tokens, including escaped and case-variant forms.
+
+    ``/u/<token>`` and ``/d/<token>`` become ``/u/***`` and ``/d/***``. The
+    prefix match is case-insensitive, so ``/U/…`` and ``/D/…`` are hidden too.
+    ``.``, ``..``, repeated slashes, and percent-encoded slashes are collapsed
+    first, which keeps ``/./u/…``, ``//u/…``, and ``/x/../u/…`` redacted. If a
+    link segment appeared anywhere, the original string is not returned.
     """
-    normalized = _normalize_path(path)
+    decoded = _percent_decode(path)
+    if not decoded.startswith("/"):
+        decoded = "/" + decoded
+    parts, saw_link = _collapse_hiding_tokens(decoded)
+    normalized = "/" + "/".join(parts)
+    lowered = normalized.lower()
     for prefix in ("/u", "/d"):
-        if normalized == prefix or normalized.startswith(prefix + "/"):
+        if lowered == prefix or lowered.startswith(prefix + "/"):
             return f"{prefix}/***"
+    if saw_link:
+        return normalized
     return path
 
 
-def _normalize_path(path: str) -> str:
+def _percent_decode(path: str) -> str:
     decoded = path
     for _ in range(3):
         nxt = unquote(decoded)
         if nxt == decoded:
             break
         decoded = nxt
-    if not decoded.startswith("/"):
-        decoded = "/" + decoded
+    return decoded
+
+
+def _collapse_hiding_tokens(decoded: str) -> tuple[list[str], bool]:
+    """Collapse dot segments and replace the segment that follows ``u`` or ``d``.
+
+    The token is removed before ``..`` can carry the original string out of the
+    prefix. A later copy of that same segment is removed as well.
+    """
     parts: list[str] = []
+    secrets: set[str] = set()
+    saw_link = False
+    hide_next = False
     for part in decoded.split("/"):
         if part in ("", "."):
             continue
@@ -79,8 +101,20 @@ def _normalize_path(path: str) -> str:
             if parts:
                 parts.pop()
             continue
+        if part.lower() in _LINK_SEGMENTS:
+            saw_link = True
+            hide_next = True
+            parts.append(part.lower())
+            continue
+        if hide_next:
+            hide_next = False
+            secrets.add(part)
+            parts.append("***")
+            continue
         parts.append(part)
-    return "/" + "/".join(parts)
+    if secrets:
+        parts = ["***" if part in secrets else part for part in parts]
+    return parts, saw_link
 
 
 class RequestLogMiddleware:

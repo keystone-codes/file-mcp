@@ -3,8 +3,9 @@
 The prefix rule is the floor for objects that have no shorter tag rule.
 A tag rule of ``retention-days=<N>`` expires that object after N days.
 If N is longer than the prefix rule, the prefix is raised so it does not
-delete the object first. A provider that rejects lifecycle configuration
-does not stop the process.
+delete the object first. Startup must not lower that prefix below the
+longest retention tag already stored, and may still raise it. A provider
+that rejects lifecycle configuration does not stop the process.
 """
 
 from __future__ import annotations
@@ -24,7 +25,12 @@ _WARN = "files under uploads/ will not expire automatically; configure expiry on
 
 
 def ensure_upload_expiry(client, bucket: str, days: int) -> bool:
-    """Install the prefix rule. Return False when lifecycle cannot be written."""
+    """Install the prefix rule. Return False when lifecycle cannot be written.
+
+    Does not lower the prefix below a longer ``retention-days`` tag. An upload
+    that raised the prefix would otherwise lose that lifetime on restart.
+    A shorter prefix is still raised.
+    """
     try:
         rules = _load_rules(client, bucket)
     except ClientError as exc:
@@ -36,10 +42,11 @@ def ensure_upload_expiry(client, bucket: str, days: int) -> bool:
     except (BotoCoreError, NotImplementedError) as exc:
         _warn(exc)
         return False
-    if any(_prefix_matches(rule, days) for rule in rules):
+    target = _prefix_days(rules, days)
+    if any(_prefix_matches(rule, target) for rule in rules):
         return True
     kept = [rule for rule in rules if rule.get("ID") != PREFIX_RULE_ID]
-    kept.append(_prefix_rule(days))
+    kept.append(_prefix_rule(target))
     return _write_rules(client, bucket, kept)
 
 
@@ -100,6 +107,32 @@ def _with_retention(rules: list[dict], days: int) -> list[dict]:
     if not found:
         updated.append(_tag_rule(days))
     return updated
+
+
+def _prefix_days(rules: list[dict], days: int) -> int:
+    """``days``, or longer when a stored retention tag already promises more."""
+    target = days
+    for rule in rules:
+        promised = _tag_expiration_days(rule)
+        if promised is not None and promised > target:
+            target = promised
+    return target
+
+
+def _tag_expiration_days(rule: dict) -> int | None:
+    if rule.get("Status") != "Enabled":
+        return None
+    tag = (rule.get("Filter") or {}).get("Tag") or {}
+    if tag.get("Key") != RETENTION_TAG:
+        return None
+    return _expiration_days(rule)
+
+
+def _expiration_days(rule: dict) -> int | None:
+    current = (rule.get("Expiration") or {}).get("Days")
+    if isinstance(current, bool) or not isinstance(current, int):
+        return None
+    return current
 
 
 def _prefix_rule(days: int) -> dict:
