@@ -63,6 +63,37 @@ def test_rule_updated_when_days_change(monkeypatch: pytest.MonkeyPatch) -> None:
     assert rule["AbortIncompleteMultipartUpload"]["DaysAfterInitiation"] == 1
 
 
+def test_restart_keeps_prefix_raised_for_retention(monkeypatch: pytest.MonkeyPatch) -> None:
+    settings = load_required(monkeypatch)
+    with mock_aws():
+        client = _client(settings)
+        client.put_bucket_lifecycle_configuration(
+            Bucket=settings.s3_bucket,
+            LifecycleConfiguration={
+                "Rules": [
+                    {
+                        "ID": "logs",
+                        "Filter": {"Prefix": "logs/"},
+                        "Status": "Enabled",
+                        "Expiration": {"Days": 3},
+                    }
+                ]
+            },
+        )
+        assert ensure_upload_expiry(client, settings.s3_bucket, 30) is True
+        assert ensure_object_retention(client, settings.s3_bucket, 90) is True
+        assert ensure_upload_expiry(client, settings.s3_bucket, 30) is True
+        rules = {rule["ID"]: rule for rule in _rules(client, settings.s3_bucket)}
+        assert rules["logs"]["Expiration"]["Days"] == 3
+        assert rules["file-mcp-uploads-expiry"]["Expiration"]["Days"] == 90
+        assert rules["file-mcp-retention-90"]["Expiration"]["Days"] == 90
+        assert ensure_upload_expiry(client, settings.s3_bucket, 120) is True
+        rules = {rule["ID"]: rule for rule in _rules(client, settings.s3_bucket)}
+    assert rules["logs"]["Expiration"]["Days"] == 3
+    assert rules["file-mcp-uploads-expiry"]["Expiration"]["Days"] == 120
+    assert rules["file-mcp-retention-90"]["Expiration"]["Days"] == 90
+
+
 def test_no_write_when_rule_matches(monkeypatch: pytest.MonkeyPatch) -> None:
     settings = load_required(monkeypatch)
     with mock_aws():
