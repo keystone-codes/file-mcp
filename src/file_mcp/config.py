@@ -49,7 +49,9 @@ class Settings(BaseSettings):
     s3_path_style: bool = True
     s3_startup_timeout_seconds: int = 60
     link_ttl_seconds: int = 900
+    link_ttl_max_seconds: int = 86400
     upload_ttl_days: int = 30
+    upload_ttl_max_days: int = 3650
     max_bytes: int = 104_857_600
     log_level: str = "INFO"
 
@@ -64,7 +66,9 @@ class Settings(BaseSettings):
             f"s3_region={self.s3_region!r}, s3_path_style={self.s3_path_style!r}, "
             f"s3_startup_timeout_seconds={self.s3_startup_timeout_seconds!r}, "
             f"link_ttl_seconds={self.link_ttl_seconds!r}, "
+            f"link_ttl_max_seconds={self.link_ttl_max_seconds!r}, "
             f"upload_ttl_days={self.upload_ttl_days!r}, "
+            f"upload_ttl_max_days={self.upload_ttl_max_days!r}, "
             f"max_bytes={self.max_bytes!r}, log_level={self.log_level!r})"
         )
 
@@ -213,6 +217,14 @@ def _parse(environ: Mapping[str, str]) -> tuple[list[tuple[str, str]], dict[str,
         low=60,
         high=86400,
     )
+    values["link_ttl_max_seconds"] = _bounded_int(
+        problems,
+        "FILE_MCP_LINK_TTL_MAX_SECONDS",
+        raw("FILE_MCP_LINK_TTL_MAX_SECONDS"),
+        default=86400,
+        low=1,
+        high=86400,
+    )
     values["upload_ttl_days"] = _bounded_int(
         problems,
         "FILE_MCP_UPLOAD_TTL_DAYS",
@@ -221,6 +233,28 @@ def _parse(environ: Mapping[str, str]) -> tuple[list[tuple[str, str]], dict[str,
         low=1,
         high=3650,
     )
+    values["upload_ttl_max_days"] = _bounded_int(
+        problems,
+        "FILE_MCP_UPLOAD_TTL_MAX_DAYS",
+        raw("FILE_MCP_UPLOAD_TTL_MAX_DAYS"),
+        default=3650,
+        low=1,
+        high=3650,
+    )
+    if values["link_ttl_max_seconds"] < values["link_ttl_seconds"]:
+        problems.append(
+            (
+                "FILE_MCP_LINK_TTL_MAX_SECONDS",
+                "must be at least FILE_MCP_LINK_TTL_SECONDS",
+            )
+        )
+    if values["upload_ttl_max_days"] < values["upload_ttl_days"]:
+        problems.append(
+            (
+                "FILE_MCP_UPLOAD_TTL_MAX_DAYS",
+                "must be at least FILE_MCP_UPLOAD_TTL_DAYS",
+            )
+        )
     values["max_bytes"] = _bounded_int(
         problems,
         "FILE_MCP_MAX_BYTES",
