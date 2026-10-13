@@ -1,0 +1,17 @@
+.git
+.github
+.venv
+venv
+tests
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.coverage
+.env
+.env.*
+minio.env
+file-mcp.env
+*.md
+!README.md
