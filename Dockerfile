@@ -13,7 +13,7 @@ COPY src ./src
 RUN uv sync --frozen --no-dev --no-editable
 
 # python:3.12-slim-bookworm
-FROM python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258
+FROM python:3.14-slim-bookworm@sha256:48b13b003dda20b16f9442b8475aa05fe21bf6579a8c881db92ffb4d8fd20f83
 
 # The generated healthcheck calls wget or curl inside the container.
 RUN groupadd --gid 10001 file-mcp \
