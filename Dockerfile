@@ -15,9 +15,13 @@ RUN uv sync --frozen --no-dev --no-editable
 # python:3.12-slim-bookworm
 FROM python:3.12-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258
 
+# The generated healthcheck calls wget or curl inside the container.
 RUN groupadd --gid 10001 file-mcp \
     && useradd --uid 10001 --gid 10001 \
-        --home-dir /nonexistent --no-create-home --shell /usr/sbin/nologin file-mcp
+        --home-dir /nonexistent --no-create-home --shell /usr/sbin/nologin file-mcp \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

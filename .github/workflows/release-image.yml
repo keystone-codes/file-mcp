@@ -1,0 +1,103 @@
+name: Release image
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semver to publish, for example 1.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+
+jobs:
+  release:
+    name: Build, push, and pin the digest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Check the version
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: python3 scripts/check_release_version.py
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Pytest
+        run: uv run pytest -q
+
+      - name: Integration tests
+        run: uv run pytest -q -m integration
+
+      - name: Lint the package manifest
+        run: >-
+          uvx --from
+          "git+https://github.com/keystone-codes/keystonectl@95052b21173a8af7aaa555eecaf46d9e378b438d"
+          keystonectl lint keystone-service.yaml
+
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6
+        with:
+          images: ghcr.io/keystone-codes/file-mcp
+          tags: |
+            type=raw,value=${{ inputs.version }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: true
+          sbom: true
+
+      - name: Pin the digest and open a pull request
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          version="$RELEASE_VERSION"
+          branch="release/pin-${version}"
+          git checkout -b "$branch"
+          python3 scripts/pin_digest.py "$IMAGE_DIGEST"
+          git add keystone-service.yaml
+          if git diff --cached --quiet; then
+            echo "digest is already recorded"
+            exit 1
+          fi
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "chore: pin image digest for ${version}"
+          git push --set-upstream origin "$branch"
+          python3 scripts/release_pr_body.py > pr-body.md
+          gh pr create --base main --head "$branch" \
+            --title "chore: pin file-mcp image digest for ${version}" \
+            --body-file pr-body.md
