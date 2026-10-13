@@ -122,6 +122,7 @@ def minio(tmp_path_factory: pytest.TempPathFactory):
             "secret_key": secret_key,
             "bucket": bucket,
             "client": client,
+            "name": name,
         }
     finally:
         subprocess.run(["docker", "stop", name], capture_output=True, check=False)
