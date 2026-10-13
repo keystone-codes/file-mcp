@@ -121,6 +121,30 @@ def test_public_base_url_rules(
     assert any("non-loopback" in record.message for record in caplog.records)
 
 
+def test_ttl_ceilings(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    settings = load_required(monkeypatch)
+    assert settings.link_ttl_max_seconds == 86400
+    assert settings.upload_ttl_max_days == 3650
+    lowered = load_required(
+        monkeypatch,
+        FILE_MCP_LINK_TTL_SECONDS="120",
+        FILE_MCP_LINK_TTL_MAX_SECONDS="300",
+        FILE_MCP_UPLOAD_TTL_DAYS="2",
+        FILE_MCP_UPLOAD_TTL_MAX_DAYS="10",
+    )
+    assert lowered.link_ttl_max_seconds == 300
+    assert lowered.upload_ttl_max_days == 10
+    apply_env(
+        monkeypatch,
+        FILE_MCP_LINK_TTL_SECONDS="900",
+        FILE_MCP_LINK_TTL_MAX_SECONDS="100",
+    )
+    with pytest.raises(SystemExit) as exc:
+        load_settings()
+    assert exc.value.code == 2
+    assert "FILE_MCP_LINK_TTL_MAX_SECONDS" in _stderr(capsys)
+
+
 def test_secrets_never_in_repr_or_errors(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
