@@ -16,6 +16,8 @@ htmlcov/
 .env
 .env.*
 !.env.example
+minio.env
+file-mcp.env
 .DS_Store
 .idea/
 .vscode/
