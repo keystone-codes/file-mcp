@@ -33,7 +33,7 @@ identity:
 containers:
   mcp:
     # Placeholder until release-image.yml records the published index digest.
-    image: ghcr.io/keystone-codes/file-mcp@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    image: ghcr.io/keystone-codes/file-mcp@sha256:5976b83fe6b256d66246044c99fb769fff53981104bb1a769e8799bb37fef4c0
     port: 8081
     env:
       - name: FILE_MCP_MAX_BYTES
