@@ -39,10 +39,7 @@ jobs:
         run: uv run pytest -q -m integration
 
       - name: Lint the package manifest
-        run: >-
-          uvx --from
-          "git+https://github.com/keystone-codes/keystonectl@95052b21173a8af7aaa555eecaf46d9e378b438d"
-          keystonectl lint keystone-service.yaml
+        run: uvx keystonectl@0.1.0 lint keystone-service.yaml
 
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
 
