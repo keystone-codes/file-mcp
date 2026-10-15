@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.1] - 2026-10-15
+
+### Fixed
+
+- The manifest no longer calls the published image digest a placeholder.
+
+### Changed
+
+- CI lints the manifest with `keystonectl` 0.1.0 from PyPI.
+
 ## [1.0.0] - 2026-10-13
 
 ### Added
