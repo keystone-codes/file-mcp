@@ -1,7 +1,7 @@
 schema_version: 1
 kind: service
 name: file-mcp
-version: "1.0.0"
+version: "1.0.1"
 publisher: keystone-codes
 summary: Upload and download links for large files on S3-compatible storage.
 homepage: https://github.com/keystone-codes/file-mcp
@@ -32,7 +32,7 @@ identity:
 
 containers:
   mcp:
-    # Placeholder until release-image.yml records the published index digest.
+    # Multi-arch index digest, written by release-image.yml (scripts/pin_digest.py).
     image: ghcr.io/keystone-codes/file-mcp@sha256:5976b83fe6b256d66246044c99fb769fff53981104bb1a769e8799bb37fef4c0
     port: 8081
     env:

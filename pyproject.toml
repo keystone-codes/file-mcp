@@ -1,6 +1,6 @@
 [project]
 name = "file-mcp"
-version = "1.0.0"
+version = "1.0.1"
 description = "MCP service for passing large files through object storage, behind Keystone."
 readme = "README.md"
 license = { file = "LICENSE" }
