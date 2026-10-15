@@ -59,9 +59,5 @@ jobs:
         with:
           python-version: "3.12"
 
-      # keystonectl is not on PyPI yet. Pin the release-branch commit.
       - name: Lint keystone-service.yaml
-        run: >-
-          uvx --from
-          "git+https://github.com/keystone-codes/keystonectl@95052b21173a8af7aaa555eecaf46d9e378b438d"
-          keystonectl lint keystone-service.yaml
+        run: uvx keystonectl@0.1.0 lint keystone-service.yaml

@@ -185,10 +185,18 @@ Uploads and downloads go through this service rather than an S3 presigned URL. T
 
 Tags are not moved and not deleted. A fix is a new version.
 
-1. Set `version` in `pyproject.toml`, `src/file_mcp/__init__.py`, and `keystone-service.yaml` to the same `X.Y.Z`. The image line may still hold the previous digest; the workflow below replaces it.
-2. Run the **Release image** workflow (`release-image.yml`) with that version. It checks that the tag `v<version>` does not exist, runs the tests and `keystonectl lint`, and pushes `ghcr.io/keystone-codes/file-mcp:<version>` for `linux/amd64` and `linux/arm64` with provenance and an SBOM. It does not push `latest`.
-3. The workflow opens a pull request from `release/pin-<version>` whose only manifest change is the image digest (the multi-platform index). Review and merge it.
+1. On a branch `release/<version>`, set `version` in `pyproject.toml`, `src/file_mcp/__init__.py`, and
+   `keystone-service.yaml` to the same `X.Y.Z`, add a `CHANGELOG.md` entry, and push the branch.
+2. Run **Release image** on that branch:
+   `gh workflow run release-image.yml --ref release/<version> -f version=<version>`.
+   It checks that the tag `v<version>` does not exist, runs the tests and `keystonectl lint`, and pushes
+   `ghcr.io/keystone-codes/file-mcp:<version>` for `linux/amd64` and `linux/arm64` with provenance and an
+   SBOM. It does not push `latest`.
+3. The workflow opens a pull request from `release/pin-<version>` with the version change and the image digest.
 4. On that push to `main`, `tag-release.yml` reads the digest, checks it with `docker buildx imagetools inspect`, and only then tags `v<version>` and creates the GitHub Release. A mismatch fails the job and does not tag.
 5. After the first publish, make the GHCR package `file-mcp` public in the organization package settings. A clean machine cannot pull a private package.
 
-`keystonectl lint` in CI uses `keystonectl` from git commit `95052b21173a8af7aaa555eecaf46d9e378b438d` until the package is on PyPI.
+See [Releasing a new version](https://github.com/keystone-codes/keystonectl/blob/main/docs/packaging-a-service.md#releasing-a-new-version)
+in the keystonectl packaging guide.
+
+CI lints the manifest with `keystonectl` 0.1.0 from PyPI.
