@@ -23,6 +23,16 @@ RUN groupadd --gid 10001 file-mcp \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
+# CVE-2026-84782: the base image ships openssl 3.0.22-1~deb12u1; the fix
+# (3.0.22-1~deb12u2) is only in bookworm-security. libbrotli1 (pulled in by
+# curl above) carries a fixed CRITICAL/HIGH finding on this base image too.
+# Run this after installing curl so libbrotli1 is already present to
+# upgrade. Remove this layer once python:3.12-slim-bookworm is published
+# with the patched packages.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends --only-upgrade libssl3 openssl libbrotli1 \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY --from=builder --chown=10001:10001 /app/.venv /app/.venv
