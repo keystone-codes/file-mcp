@@ -2,13 +2,16 @@
 
 Anonymous pulls of ``minio/minio`` were refused on 2026-10-13 (the repository
 requires authorization). The fixture runs only when ``FILE_MCP_MINIO_IMAGE`` is
-``minio/minio@sha256:<digest>`` of a release this machine can pull. A bare tag
-is not accepted.
+set to an image pinned by digest (``<repo>@sha256:<digest>``) that this machine
+can pull — for example ``ghcr.io/keystone-codes/minio-server@sha256:<digest>``,
+the anonymously pullable image ``minio-resource`` packages for exactly this
+purpose. A bare tag is not accepted.
 """
 
 from __future__ import annotations
 
 import os
+import re
 import socket
 import subprocess
 import time
@@ -19,6 +22,8 @@ import pytest
 from botocore.config import Config
 
 _IMAGE_ENV = "FILE_MCP_MINIO_IMAGE"
+# <registry/repo>@sha256:<64 lowercase hex digits>, no floating tag alongside the digest.
+_PINNED_IMAGE = re.compile(r"^[^@]+@sha256:[0-9a-f]{64}$")
 
 
 def _free_port() -> int:
@@ -40,10 +45,11 @@ def _wait_tcp(port: int, deadline: float) -> None:
 @pytest.fixture(scope="session")
 def minio(tmp_path_factory: pytest.TempPathFactory):
     image = os.environ.get(_IMAGE_ENV, "").strip()
-    if not image.startswith("minio/minio@sha256:") or image.count(":") != 1:
+    if not _PINNED_IMAGE.match(image):
         pytest.skip(
             "minio/minio is not anonymously pullable. "
-            f"Set {_IMAGE_ENV}=minio/minio@sha256:<digest> to run these checks."
+            f"Set {_IMAGE_ENV}=<repo>@sha256:<digest> (for example "
+            "ghcr.io/keystone-codes/minio-server@sha256:<digest>) to run these checks."
         )
     if (
         subprocess.call(

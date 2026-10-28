@@ -36,6 +36,11 @@ jobs:
   integration:
     name: Integration
     runs-on: ubuntu-latest
+    env:
+      # minio/minio stopped being anonymously pullable on 2026-10-13. Use the
+      # image minio-resource packages for exactly this purpose instead,
+      # pinned by digest (see tests/integration/conftest.py).
+      FILE_MCP_MINIO_IMAGE: ghcr.io/keystone-codes/minio-server@sha256:a9dca07071a50045809704bb10681922448c9d7680d36afdbc2f7f759caaea6e
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
