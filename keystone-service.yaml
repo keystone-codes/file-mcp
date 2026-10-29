@@ -1,7 +1,7 @@
 schema_version: 1
 kind: service
 name: file-mcp
-version: "1.0.1"
+version: "1.0.2"
 publisher: keystone-codes
 summary: Upload and download links for large files on S3-compatible storage.
 homepage: https://github.com/keystone-codes/file-mcp
