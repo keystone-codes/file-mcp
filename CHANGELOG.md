@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+
+- `joserfc` 1.7.5, pulled in transitively through `authlib` (GHSA-9pg5-8c7x-5hfx, CVE-2026-119284): upgraded to 1.7.7.
+
 ## [1.0.2] - 2026-10-28
 
 ### Fixed
