@@ -33,7 +33,7 @@ identity:
 containers:
   mcp:
     # Multi-arch index digest, written by release-image.yml (scripts/pin_digest.py).
-    image: ghcr.io/keystone-codes/file-mcp@sha256:6cde41c57262b53bab2e9dc9669b355165f1217e4e396a8ea0b02fe4f3585273
+    image: ghcr.io/keystone-codes/file-mcp@sha256:32c27af1dc241d271d6745a71eb47cc83c2044e450c8fa67a08080279e723570
     port: 8081
     env:
       - name: FILE_MCP_MAX_BYTES
