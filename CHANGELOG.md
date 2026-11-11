@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.4] - 2026-11-11
+
+### Fixed
+
+- `apt` 2.6.1 in the runtime image (CVE-2026-109518): base image repinned to a `python:3.12-slim-bookworm` build with `apt` 2.6.2, and the image now upgrades `apt` along with `libssl3`/`openssl`/`libbrotli1`.
+
 ## [1.0.3] - 2026-11-03
 
 ### Fixed
